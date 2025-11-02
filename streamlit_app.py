@@ -13,7 +13,8 @@ st.title("💡 Customer Churn Prediction — Demo App")
 def load_model():
     url = "https://raw.githubusercontent.com/Sowndharya617/customer-churn/main/models/rf_churn_model.pkl"
     response = requests.get(url)
-    open("rf_churn_model.pkl", "wb").write(response.content)
+    with open("rf_churn_model.pkl", "wb") as f:
+        f.write(response.content)
     return joblib.load("rf_churn_model.pkl")
 
 model = load_model()
@@ -37,10 +38,15 @@ total = st.sidebar.number_input("Total Charges", value=800.0, step=1.0)
 gender = st.sidebar.selectbox("Gender", ["Female", "Male"])
 contract = st.sidebar.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
 internet = st.sidebar.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
-payment = st.sidebar.selectbox("Payment Method", [
-    "Electronic check", "Mailed check", 
-    "Bank transfer (automatic)", "Credit card (automatic)"
-])
+payment = st.sidebar.selectbox(
+    "Payment Method",
+    [
+        "Electronic check",
+        "Mailed check",
+        "Bank transfer (automatic)",
+        "Credit card (automatic)",
+    ],
+)
 
 # -------------------------------
 # Build Input DataFrame
@@ -59,15 +65,18 @@ input_df = pd.DataFrame({
     'PaymentMethod_Credit card (automatic)': [1 if payment == "Credit card (automatic)" else 0],
 })
 
-st.subheader("🧾 Input features")
+st.subheader("🧾 Input Features")
 st.table(input_df.T)
 
 # -------------------------------
 # Prediction
 # -------------------------------
 if st.button("🔮 Predict Churn"):
-    pred, proba = predict_single(model, input_df)
-    if pred == 1:
-        st.error(f"⚠️ Churn predicted with probability {proba:.2f}. Recommend retention action.")
-    else:
-        st.success(f"✅ Customer likely to stay (probability {proba:.2f}).")
+    try:
+        pred, proba = predict_single(model, input_df)
+        if pred == 1:
+            st.error(f"⚠️ Customer likely to **churn** (probability {proba:.2f}). Recommend retention action.")
+        else:
+            st.success(f"✅ Customer likely to **stay** (probability {proba:.2f}).")
+    except Exception as e:
+        st.error(f"An error occurred during prediction: {e}")
