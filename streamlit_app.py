@@ -1,82 +1,92 @@
 import streamlit as st
 import pandas as pd
-import joblib
 import numpy as np
+import pickle as pk
 import requests
 
-st.title("💡 Customer Churn Prediction — Demo App")
+# -------------------------------
+# Title
+# -------------------------------
+st.title("🚗 Car Price Prediction App")
+
+st.write("""
+### Predict the Selling Price of a Car
+Provide car details in the sidebar to estimate its selling price.
+""")
 
 # -------------------------------
-# Load Model (from GitHub)
+# Load Model from GitHub
 # -------------------------------
 @st.cache_resource
 def load_model():
-    url = "https://raw.githubusercontent.com/Sowndharya617/customer-churn/main/models/rf_churn_model.pkl"
+    url = "https://raw.githubusercontent.com/Sowndharya617/carpriceprediction/main/model.pkl"  # ✅ Update if path differs
     response = requests.get(url)
-    with open("rf_churn_model.pkl", "wb") as f:
+    with open("model.pkl", "wb") as f:
         f.write(response.content)
-    return joblib.load("rf_churn_model.pkl")
+    return pk.load(open("model.pkl", "rb"))
 
 model = load_model()
 
 # -------------------------------
-# Prediction Function
-# -------------------------------
-def predict_single(model, input_df):
-    proba = model.predict_proba(input_df)[:, 1]
-    pred = (proba >= 0.5).astype(int)
-    return pred[0], float(proba[0])
-
-# -------------------------------
 # Sidebar Inputs
 # -------------------------------
-st.sidebar.header("Enter customer information")
+st.sidebar.header("Enter Car Details")
 
-tenure = st.sidebar.slider("Tenure (months)", 0, 72, 12)
-monthly = st.sidebar.number_input("Monthly Charges", value=70.0, step=1.0)
-total = st.sidebar.number_input("Total Charges", value=800.0, step=1.0)
-gender = st.sidebar.selectbox("Gender", ["Female", "Male"])
-contract = st.sidebar.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
-internet = st.sidebar.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
-payment = st.sidebar.selectbox(
-    "Payment Method",
-    [
-        "Electronic check",
-        "Mailed check",
-        "Bank transfer (automatic)",
-        "Credit card (automatic)",
-    ],
-)
+year = st.sidebar.number_input("Year of Purchase", min_value=1990, max_value=2025, value=2018)
+present_price = st.sidebar.number_input("Present Price (in lakhs)", min_value=0.0, max_value=50.0, value=5.0, step=0.1)
+kms_driven = st.sidebar.number_input("Kilometers Driven", min_value=0, max_value=200000, value=30000, step=1000)
+owner = st.sidebar.selectbox("Number of Previous Owners", [0, 1, 2, 3])
+fuel_type = st.sidebar.selectbox("Fuel Type", ["Petrol", "Diesel", "CNG"])
+seller_type = st.sidebar.selectbox("Seller Type", ["Dealer", "Individual"])
+transmission = st.sidebar.selectbox("Transmission", ["Manual", "Automatic"])
 
 # -------------------------------
-# Build Input DataFrame
+# Preprocessing Input
 # -------------------------------
+if fuel_type == "Petrol":
+    Fuel_Type_Petrol = 1
+    Fuel_Type_Diesel = 0
+elif fuel_type == "Diesel":
+    Fuel_Type_Petrol = 0
+    Fuel_Type_Diesel = 1
+else:
+    Fuel_Type_Petrol = 0
+    Fuel_Type_Diesel = 0
+
+Seller_Type_Individual = 1 if seller_type == "Individual" else 0
+Transmission_Manual = 1 if transmission == "Manual" else 0
+
+current_year = 2025
+no_years = current_year - year
+
+# Create input dataframe
 input_df = pd.DataFrame({
-    'tenure': [tenure],
-    'MonthlyCharges': [monthly],
-    'TotalCharges': [total],
-    'gender_flag': [1 if gender == "Female" else 0],
-    'Contract_One year': [1 if contract == "One year" else 0],
-    'Contract_Two year': [1 if contract == "Two year" else 0],
-    'InternetService_Fiber optic': [1 if internet == "Fiber optic" else 0],
-    'InternetService_No': [1 if internet == "No" else 0],
-    'PaymentMethod_Mailed check': [1 if payment == "Mailed check" else 0],
-    'PaymentMethod_Bank transfer (automatic)': [1 if payment == "Bank transfer (automatic)" else 0],
-    'PaymentMethod_Credit card (automatic)': [1 if payment == "Credit card (automatic)" else 0],
+    'Present_Price': [present_price],
+    'Kms_Driven': [kms_driven],
+    'Owner': [owner],
+    'no_years': [no_years],
+    'Fuel_Type_Diesel': [Fuel_Type_Diesel],
+    'Fuel_Type_Petrol': [Fuel_Type_Petrol],
+    'Seller_Type_Individual': [Seller_Type_Individual],
+    'Transmission_Manual': [Transmission_Manual]
 })
 
-st.subheader("🧾 Input Features")
+st.subheader("📋 Input Summary")
 st.table(input_df.T)
 
 # -------------------------------
-# Prediction
+# Predict Button
 # -------------------------------
-if st.button("🔮 Predict Churn"):
+if st.button("🔮 Predict Selling Price"):
     try:
-        pred, proba = predict_single(model, input_df)
-        if pred == 1:
-            st.error(f"⚠️ Customer likely to **churn** (probability {proba:.2f}). Recommend retention action.")
-        else:
-            st.success(f"✅ Customer likely to **stay** (probability {proba:.2f}).")
+        prediction = model.predict(input_df)
+        output = round(prediction[0], 2)
+        st.success(f"💰 Estimated Selling Price: ₹ {output} lakhs")
     except Exception as e:
-        st.error(f"An error occurred during prediction: {e}")
+        st.error(f"⚠️ Prediction error: {e}")
+
+# -------------------------------
+# Footer
+# -------------------------------
+st.markdown("---")
+st.caption("Developed by Sowndharya | Powered by Streamlit")
