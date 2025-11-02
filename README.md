@@ -11,8 +11,9 @@ Telecom company wants to predict which customers are likely to churn (leave serv
 - GitHub (version control)
 
 ## 🚀 Live Demo
-- 🎯 [Streamlit App](https://customer-churn-<your-id>.streamlit.app)
-- 📊 [Interactive Dashboard](https://lookerstudio.google.com/s/<your-dashboard-id>)
+- 🎯 [Streamlit App]([https://customer-churn-<your-id>.streamlit.ap](https://customer-churn-63bxe6bw9nrtw2whjj4uus.streamlit.app/
+)
+
 
 ## ⚙️ How to Run Locally
 ```bash
